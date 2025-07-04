@@ -1,12 +1,4 @@
 import streamlit as st
-import openai
-import numpy as np
-import av
-import os
-import tempfile
-import wave
-from streamlit_webrtc import webrtc_streamer, WebRtcMode
-from streamlit_webrtc import RTCConfiguration
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -52,70 +44,24 @@ def get_medical_answer(question):
     )
     return response.choices[0].message.content.strip()
 
-def transcribe_audio_file(audio_path):
-    with open(audio_path, "rb") as audio_file:
-        transcript = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file
-        )
-    return transcript.text
-
 # Streamlit UI
-st.set_page_config(page_title="Medical QA Voice Assistant", layout="centered")
-st.title("👩‍⚕️ Medical QA Assistant (Real-Time Voice Enabled)")
+st.set_page_config(page_title="Medical QA Assistant", layout="centered")
+st.title("👩‍⚕️ Medical QA Assistant (Legal Sources Only)")
 
 st.markdown("""
-This assistant uses **only legally permitted medical sources** such as CDC, NIH, MedlinePlus, and PubMed Central (Open Access). It avoids using any proprietary clinical content.
+This assistant uses **only legally permitted medical sources** such as CDC, NIH, MedlinePlus, and PubMed Central (Open Access).  
+It avoids using any proprietary clinical content.
 """)
 
-st.markdown("### 🎤 Record Your Voice")
+user_question = st.text_area("Enter your medical question:", height=150)
 
-rtc_config = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-
-ctx = webrtc_streamer(
-    key="speech-to-text",
-    mode=WebRtcMode.SENDONLY,
-    rtc_configuration=rtc_config,
-    media_stream_constraints={"audio": True, "video": False},
-    audio_receiver_size=1024,
-    async_processing=True,
-)
-
-if ctx.audio_receiver:
-    try:
-        audio_frames = ctx.audio_receiver.get_frames(timeout=10)
-        if not audio_frames:
-            st.warning("No audio frames received.")
-        else:
-            frame = audio_frames[0]
-            sample_rate = frame.sample_rate
-            samples = np.concatenate([f.to_ndarray() for f in audio_frames]).astype(np.int16)
-
-            # Ensure recording is at least 5s long (~80000 samples at 16kHz)
-            min_seconds = 5
-            if len(samples) < int(sample_rate * min_seconds):
-                st.warning(f"Recording too short. Please speak for at least {min_seconds} seconds.")
-            else:
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                    with wave.open(f.name, 'wb') as wf:
-                        wf.setnchannels(1)
-                        wf.setsampwidth(2)
-                        wf.setframerate(sample_rate)
-                        wf.writeframes(samples.tobytes())
-
-                    st.success("Voice recorded. Transcribing...")
-                    transcription = transcribe_audio_file(f.name)
-                    st.info(f"Transcription: {transcription}")
-
-                    if st.button("Get Answer"):
-                        with st.spinner("Generating medically verified response..."):
-                            try:
-                                answer = get_medical_answer(transcription)
-                                st.success("Response:")
-                                st.markdown(answer)
-                            except Exception as e:
-                                st.error(f"Error: {str(e)}")
-    except Exception as e:
-        st.error(f"Recording failed: {str(e)}")
+if st.button("Get Answer") and user_question.strip():
+    with st.spinner("Generating medically verified response..."):
+        try:
+            answer = get_medical_answer(user_question)
+            st.success("Response:")
+            st.markdown(answer)
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
 else:
-    st.info("Click the microphone above to record your voice.")
+    st.info("Please enter a question above and click 'Get Answer'.")
