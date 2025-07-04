@@ -53,8 +53,11 @@ def get_medical_answer(question):
 
 def transcribe_audio_file(audio_path):
     with open(audio_path, "rb") as audio_file:
-        transcript = openai.Audio.transcribe("whisper-1", audio_file)
-    return transcript["text"]
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file
+        )
+    return transcript.text
 
 # Streamlit UI
 st.set_page_config(page_title="Medical QA Voice Assistant", layout="centered")
