@@ -3,6 +3,4 @@ openai
 streamlit-webrtc
 numpy
 av
-pydub
 python-dotenv
-pyaudio
