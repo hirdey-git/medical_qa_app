@@ -83,23 +83,32 @@ ctx = webrtc_streamer(
 if ctx.audio_receiver:
     try:
         audio_frames = ctx.audio_receiver.get_frames(timeout=5)
-        audio_data = b"".join([frame.to_ndarray().tobytes() for frame in audio_frames])
+        if not audio_frames:
+            st.warning("No audio frames received.")
+        else:
+            frame = audio_frames[0]
+            sample_rate = frame.sample_rate
+            samples = np.concatenate([f.to_ndarray() for f in audio_frames]).astype(np.int16)
 
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            f.write(audio_data)
-            f.flush()
-            st.success("Voice recorded. Transcribing...")
-            transcription = transcribe_audio_file(f.name)
-            st.info(f"Transcription: {transcription}")
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                with wave.open(f.name, 'wb') as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(sample_rate)
+                    wf.writeframes(samples.tobytes())
 
-            if st.button("Get Answer"):
-                with st.spinner("Generating medically verified response..."):
-                    try:
-                        answer = get_medical_answer(transcription)
-                        st.success("Response:")
-                        st.markdown(answer)
-                    except Exception as e:
-                        st.error(f"Error: {str(e)}")
+                st.success("Voice recorded. Transcribing...")
+                transcription = transcribe_audio_file(f.name)
+                st.info(f"Transcription: {transcription}")
+
+                if st.button("Get Answer"):
+                    with st.spinner("Generating medically verified response..."):
+                        try:
+                            answer = get_medical_answer(transcription)
+                            st.success("Response:")
+                            st.markdown(answer)
+                        except Exception as e:
+                            st.error(f"Error: {str(e)}")
     except Exception as e:
         st.error(f"Recording failed: {str(e)}")
 else:
