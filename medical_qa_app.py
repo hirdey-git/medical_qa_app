@@ -36,7 +36,7 @@ Answer:
 
 def get_medical_answer(question):
     prompt = BASE_PROMPT.format(question=question)
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "user", "content": prompt}
@@ -45,7 +45,6 @@ def get_medical_answer(question):
         temperature=0.2
     )
     return response.choices[0].message.content.strip()
-
 
 
 # Streamlit UI
