@@ -8,6 +8,7 @@ from pydub import AudioSegment
 from dotenv import load_dotenv
 from openai import OpenAI
 
+
 # Load environment variables
 load_dotenv()
 # Set your OpenAI API key here or use an environment variable
@@ -50,7 +51,6 @@ def get_medical_answer(question):
     )
     return response.choices[0].message.content.strip()
 
-
 def get_medical_answer(question):
     prompt = BASE_PROMPT.format(question=question)
     response = openai.ChatCompletion.create(
@@ -61,13 +61,10 @@ def get_medical_answer(question):
     )
     return response.choices[0].message.content.strip()
 
-def transcribe_audio(audio_path):
-    audio = AudioSegment.from_file(audio_path)
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav:
-        audio.export(temp_wav.name, format="wav")
-        with open(temp_wav.name, "rb") as f:
-            transcript = openai.Audio.transcribe("whisper-1", f)
-    return transcript['text']
+def transcribe_audio_file(audio_path):
+    with open(audio_path, "rb") as audio_file:
+        transcript = openai.Audio.transcribe("whisper-1", audio_file)
+    return transcript["text"]
 
 # Streamlit UI
 st.set_page_config(page_title="Medical QA Voice Assistant", layout="centered")
@@ -90,33 +87,27 @@ ctx = webrtc_streamer(
     async_processing=True,
 )
 
-audio_buffer = b""
-
 if ctx.audio_receiver:
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-        try:
-            audio_frames = ctx.audio_receiver.get_frames(timeout=5)
-            audio_array = np.concatenate([frame.to_ndarray() for frame in audio_frames])
-            audio_segment = AudioSegment(
-                audio_array.tobytes(),
-                frame_rate=audio_frames[0].sample_rate,
-                sample_width=2,
-                channels=1
-            )
-            audio_segment.export(f.name, format="wav")
+    try:
+        audio_frames = ctx.audio_receiver.get_frames(timeout=5)
+        audio_data = b"".join([frame.to_ndarray().tobytes() for frame in audio_frames])
+
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            f.write(audio_data)
+            f.flush()
             st.success("Voice recorded. Transcribing...")
-            question_text = transcribe_audio(f.name)
-            st.info(f"Transcription: {question_text}")
+            transcription = transcribe_audio_file(f.name)
+            st.info(f"Transcription: {transcription}")
 
             if st.button("Get Answer"):
                 with st.spinner("Generating medically verified response..."):
                     try:
-                        answer = get_medical_answer(question_text)
+                        answer = get_medical_answer(transcription)
                         st.success("Response:")
                         st.markdown(answer)
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
-        except Exception as e:
-            st.error(f"Recording failed: {str(e)}")
+    except Exception as e:
+        st.error(f"Recording failed: {str(e)}")
 else:
     st.info("Click the microphone above to record your voice.")
