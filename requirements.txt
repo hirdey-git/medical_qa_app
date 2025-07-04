@@ -4,4 +4,3 @@ streamlit-webrtc
 numpy
 av
 python-dotenv
-wave
