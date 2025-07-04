@@ -51,8 +51,8 @@ def get_medical_answer(question):
     return response.choices[0].message.content.strip()
 
 
-def transcribe_audio(audio_file):
-    audio = AudioSegment.from_file(audio_file)
+def transcribe_audio(audio_path):
+    audio = AudioSegment.from_file(audio_path)
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav:
         audio.export(temp_wav.name, format="wav")
         with open(temp_wav.name, "rb") as f:
@@ -61,33 +61,52 @@ def transcribe_audio(audio_file):
 
 # Streamlit UI
 st.set_page_config(page_title="Medical QA Voice Assistant", layout="centered")
-st.title("👩‍⚕️ Medical QA Assistant (Voice Enabled)")
+st.title("👩‍⚕️ Medical QA Assistant (Real-Time Voice Enabled)")
 
 st.markdown("""
 This assistant uses **only legally permitted medical sources** such as CDC, NIH, MedlinePlus, and PubMed Central (Open Access). It avoids using any proprietary clinical content.
 """)
 
-st.markdown("### 🎙️ Record Your Question")
-audio_file = st.file_uploader("Upload a .wav or .mp3 file", type=["wav", "mp3"])
+st.markdown("### 🎤 Record Your Voice")
 
-if audio_file:
-    with st.spinner("Transcribing audio..."):
+ctx = webrtc_streamer(
+    key="speech-to-text",
+    mode=WebRtcMode.SENDONLY,
+    client_settings=ClientSettings(
+        media_stream_constraints={"audio": True, "video": False},
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    ),
+    audio_receiver_size=1024,
+    async_processing=True,
+)
+
+audio_buffer = b""
+
+if ctx.audio_receiver:
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         try:
-            question_text = transcribe_audio(audio_file)
-            st.success("Transcription: " + question_text)
-        except Exception as e:
-            st.error(f"Transcription failed: {str(e)}")
+            audio_frames = ctx.audio_receiver.get_frames(timeout=5)
+            audio_array = np.concatenate([frame.to_ndarray() for frame in audio_frames])
+            audio_segment = AudioSegment(
+                audio_array.tobytes(),
+                frame_rate=audio_frames[0].sample_rate,
+                sample_width=2,
+                channels=1
+            )
+            audio_segment.export(f.name, format="wav")
+            st.success("Voice recorded. Transcribing...")
+            question_text = transcribe_audio(f.name)
+            st.info(f"Transcription: {question_text}")
 
-## Text input fallback
-user_input = st.text_area("Or type your question below:", value=question_text, height=150)
-
-if st.button("Get Answer") and user_input.strip():
-    with st.spinner("Generating medically verified response..."):
-        try:
-            answer = get_medical_answer(user_input.strip())
-            st.success("Response:")
-            st.markdown(answer)
+            if st.button("Get Answer"):
+                with st.spinner("Generating medically verified response..."):
+                    try:
+                        answer = get_medical_answer(question_text)
+                        st.success("Response:")
+                        st.markdown(answer)
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
         except Exception as e:
-            st.error(f"Error: {str(e)}")
+            st.error(f"Recording failed: {str(e)}")
 else:
-    st.info("Upload an audio question or type it manually and click 'Get Answer'.")
+    st.info("Click the microphone above to record your voice.")
