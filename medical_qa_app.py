@@ -36,12 +36,17 @@ Answer:
 
 def get_medical_answer(question):
     prompt = BASE_PROMPT.format(question=question)
-    response = client.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0
-    )   
-    return response.choices[0].message['content'].strip()
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=1000,
+        temperature=0.2
+    )
+    return response.choices[0].message.content.strip()
+
+
 
 # Streamlit UI
 st.set_page_config(page_title="Medical QA Assistant", layout="centered")
