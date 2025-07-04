@@ -4,7 +4,8 @@ import numpy as np
 import av
 import os
 import tempfile
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, ClientSettings
+from streamlit_webrtc import webrtc_streamer, WebRtcMode
+from streamlit_webrtc import RTCConfiguration
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -50,16 +51,6 @@ def get_medical_answer(question):
     )
     return response.choices[0].message.content.strip()
 
-def get_medical_answer(question):
-    prompt = BASE_PROMPT.format(question=question)
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=1000,
-        temperature=0.2
-    )
-    return response.choices[0].message.content.strip()
-
 def transcribe_audio_file(audio_path):
     with open(audio_path, "rb") as audio_file:
         transcript = openai.Audio.transcribe("whisper-1", audio_file)
@@ -75,13 +66,13 @@ This assistant uses **only legally permitted medical sources** such as CDC, NIH,
 
 st.markdown("### 🎤 Record Your Voice")
 
+rtc_config = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+
 ctx = webrtc_streamer(
     key="speech-to-text",
     mode=WebRtcMode.SENDONLY,
-    client_settings=ClientSettings(
-        media_stream_constraints={"audio": True, "video": False},
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    ),
+    rtc_configuration=rtc_config,
+    media_stream_constraints={"audio": True, "video": False},
     audio_receiver_size=1024,
     async_processing=True,
 )
