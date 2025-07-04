@@ -83,7 +83,7 @@ ctx = webrtc_streamer(
 
 if ctx.audio_receiver:
     try:
-        audio_frames = ctx.audio_receiver.get_frames(timeout=5)
+        audio_frames = ctx.audio_receiver.get_frames(timeout=10)
         if not audio_frames:
             st.warning("No audio frames received.")
         else:
@@ -92,8 +92,9 @@ if ctx.audio_receiver:
             samples = np.concatenate([f.to_ndarray() for f in audio_frames]).astype(np.int16)
 
             # Ensure recording is at least 5s long (~80000 samples at 16kHz)
-            if len(samples) < int(sample_rate * 5):
-                st.warning("Recording too short. Please speak for at least 5 seconds.")
+            min_seconds = 5
+            if len(samples) < int(sample_rate * min_seconds):
+                st.warning(f"Recording too short. Please speak for at least {min_seconds} seconds.")
             else:
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                     with wave.open(f.name, 'wb') as wf:
