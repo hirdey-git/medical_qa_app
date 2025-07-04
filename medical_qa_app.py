@@ -45,7 +45,7 @@ def get_medical_answer(question):
         messages=[
             {"role": "user", "content": prompt}
         ],
-        max_tokens=1000,
+        max_tokens=5000,
         temperature=0.2
     )
     return response.choices[0].message.content.strip()
@@ -68,28 +68,17 @@ This assistant uses **only legally permitted medical sources** such as CDC, NIH,
 """)
 
 st.markdown("### 🎙️ Record Your Question")
+audio_file = st.file_uploader("Upload a .wav or .mp3 file", type=["wav", "mp3"])
 
-# Voice input
-audio_bytes = st.audio_recorder(
-    text="Click to record your medical question",
-    pause_threshold=2.0,
-    sample_rate=44100,
-    key="recorder"
-)
-
-question_text = ""
-
-if audio_bytes:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
-        temp_audio.write(audio_bytes)
-        temp_audio.flush()
+if audio_file:
+    with st.spinner("Transcribing audio..."):
         try:
-            question_text = transcribe_audio(temp_audio.name)
+            question_text = transcribe_audio(audio_file)
             st.success("Transcription: " + question_text)
         except Exception as e:
             st.error(f"Transcription failed: {str(e)}")
 
-# Text input fallback
+## Text input fallback
 user_input = st.text_area("Or type your question below:", value=question_text, height=150)
 
 if st.button("Get Answer") and user_input.strip():
@@ -101,4 +90,4 @@ if st.button("Get Answer") and user_input.strip():
         except Exception as e:
             st.error(f"Error: {str(e)}")
 else:
-    st.info("Record or type a question and click 'Get Answer'.")
+    st.info("Upload an audio question or type it manually and click 'Get Answer'.")
