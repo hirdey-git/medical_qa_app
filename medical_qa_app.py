@@ -51,6 +51,16 @@ def get_medical_answer(question):
     return response.choices[0].message.content.strip()
 
 
+def get_medical_answer(question):
+    prompt = BASE_PROMPT.format(question=question)
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=1000,
+        temperature=0.2
+    )
+    return response.choices[0].message.content.strip()
+
 def transcribe_audio(audio_path):
     audio = AudioSegment.from_file(audio_path)
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav:
