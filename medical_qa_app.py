@@ -1,6 +1,10 @@
 import streamlit as st
 import openai
 import os
+import tempfile
+import base64
+from io import BytesIO
+from pydub import AudioSegment
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -47,24 +51,54 @@ def get_medical_answer(question):
     return response.choices[0].message.content.strip()
 
 
+def transcribe_audio(audio_file):
+    audio = AudioSegment.from_file(audio_file)
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav:
+        audio.export(temp_wav.name, format="wav")
+        with open(temp_wav.name, "rb") as f:
+            transcript = openai.Audio.transcribe("whisper-1", f)
+    return transcript['text']
+
 # Streamlit UI
-st.set_page_config(page_title="Medical QA Assistant", layout="centered")
-st.title("👩‍⚕️ Medical QA Assistant (Legal Sources Only)")
+st.set_page_config(page_title="Medical QA Voice Assistant", layout="centered")
+st.title("👩‍⚕️ Medical QA Assistant (Voice Enabled)")
 
 st.markdown("""
-This assistant uses **only legally permitted medical sources** such as CDC, NIH, MedlinePlus, and PubMed Central (Open Access).
-It avoids using any proprietary clinical content.
+This assistant uses **only legally permitted medical sources** such as CDC, NIH, MedlinePlus, and PubMed Central (Open Access). It avoids using any proprietary clinical content.
 """)
 
-user_question = st.text_area("Enter your medical question:", height=150)
+st.markdown("### 🎙️ Record Your Question")
 
-if st.button("Get Answer") and user_question.strip():
+# Voice input
+audio_bytes = st.audio_recorder(
+    text="Click to record your medical question",
+    pause_threshold=2.0,
+    sample_rate=44100,
+    key="recorder"
+)
+
+question_text = ""
+
+if audio_bytes:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
+        temp_audio.write(audio_bytes)
+        temp_audio.flush()
+        try:
+            question_text = transcribe_audio(temp_audio.name)
+            st.success("Transcription: " + question_text)
+        except Exception as e:
+            st.error(f"Transcription failed: {str(e)}")
+
+# Text input fallback
+user_input = st.text_area("Or type your question below:", value=question_text, height=150)
+
+if st.button("Get Answer") and user_input.strip():
     with st.spinner("Generating medically verified response..."):
         try:
-            answer = get_medical_answer(user_question)
+            answer = get_medical_answer(user_input.strip())
             st.success("Response:")
             st.markdown(answer)
         except Exception as e:
             st.error(f"Error: {str(e)}")
 else:
-    st.info("Please enter a question above and click 'Get Answer'.")
+    st.info("Record or type a question and click 'Get Answer'.")
