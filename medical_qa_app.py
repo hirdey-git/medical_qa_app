@@ -1,13 +1,12 @@
 import streamlit as st
 import openai
+import numpy as np
+import av
 import os
 import tempfile
-import base64
-from io import BytesIO
-from pydub import AudioSegment
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, ClientSettings
 from dotenv import load_dotenv
 from openai import OpenAI
-
 
 # Load environment variables
 load_dotenv()
