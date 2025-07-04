@@ -91,25 +91,29 @@ if ctx.audio_receiver:
             sample_rate = frame.sample_rate
             samples = np.concatenate([f.to_ndarray() for f in audio_frames]).astype(np.int16)
 
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                with wave.open(f.name, 'wb') as wf:
-                    wf.setnchannels(1)
-                    wf.setsampwidth(2)
-                    wf.setframerate(sample_rate)
-                    wf.writeframes(samples.tobytes())
+            # Ensure recording is at least 5s long (~80000 samples at 16kHz)
+            if len(samples) < int(sample_rate * 5):
+                st.warning("Recording too short. Please speak for at least 5 seconds.")
+            else:
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                    with wave.open(f.name, 'wb') as wf:
+                        wf.setnchannels(1)
+                        wf.setsampwidth(2)
+                        wf.setframerate(sample_rate)
+                        wf.writeframes(samples.tobytes())
 
-                st.success("Voice recorded. Transcribing...")
-                transcription = transcribe_audio_file(f.name)
-                st.info(f"Transcription: {transcription}")
+                    st.success("Voice recorded. Transcribing...")
+                    transcription = transcribe_audio_file(f.name)
+                    st.info(f"Transcription: {transcription}")
 
-                if st.button("Get Answer"):
-                    with st.spinner("Generating medically verified response..."):
-                        try:
-                            answer = get_medical_answer(transcription)
-                            st.success("Response:")
-                            st.markdown(answer)
-                        except Exception as e:
-                            st.error(f"Error: {str(e)}")
+                    if st.button("Get Answer"):
+                        with st.spinner("Generating medically verified response..."):
+                            try:
+                                answer = get_medical_answer(transcription)
+                                st.success("Response:")
+                                st.markdown(answer)
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
     except Exception as e:
         st.error(f"Recording failed: {str(e)}")
 else:
