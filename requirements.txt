@@ -1,4 +1,7 @@
 streamlit
 openai
-python-dotenv
+streamlit-webrtc
+numpy
+av
 pydub
+python-dotenv
