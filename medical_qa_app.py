@@ -4,6 +4,7 @@ import numpy as np
 import av
 import os
 import tempfile
+import wave
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 from streamlit_webrtc import RTCConfiguration
 from dotenv import load_dotenv
