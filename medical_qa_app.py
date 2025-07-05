@@ -31,6 +31,7 @@ Never guess. If the information is not covered in the listed sources, respond:
 
 Always respond with a respectful and professional tone. This is not medical advice; recommend users consult a licensed healthcare provider.
 Provide details about all the options listed in the request.
+
 When answering a question, follow this structured format:
 Step 1: Provide a medically accurate answer using only the sources above.  
 Step 2: Reflect on the accuracy of your own response. Ask:  
@@ -70,7 +71,7 @@ def get_medical_answer(question):
             {"role": "user", "content": prompt}
         ],
         max_tokens=800,
-        temperature=0.2
+        temperature=0.0
     )
     return response.choices[0].message.content.strip()
 
