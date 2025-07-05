@@ -5,47 +5,69 @@ import re
 
 # Load environment variables
 load_dotenv()
+
+# Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
+# Prompt builder function
 def build_prompt(question: str) -> str:
-    import re
-    mcq_match = re.findall(r"^[A-Da-d][\.\)]\s", question, re.MULTILINE)
+    mcq_match = re.findall(r"^[A-Ea-e][\.\)]\s", question, re.MULTILINE)
     is_mcq = len(mcq_match) >= 2
 
     base_prompt = """
-You are a medically accurate AI assistant.
+You are a medically accurate AI assistant. You must only generate answers based on reliable, verified medical information. Your responses must strictly follow these sources:
 
-Use only these legally safe public sources:
-- CDC, NIH, FDA, WHO (public info only)
-- MedlinePlus, PubMed Central (Open Access)
-- NICE (UK), PLOS, BMC, DOAJ
-- Johns Hopkins Medicine, Mount Sinai, Harvard Health (public info)
-- WebMD (basic/general explanations only)
-
-Do not use Mayo Clinic, UpToDate, BMJ, or any proprietary/uncertain sources.
-
-If unsure, say: “I don’t have enough verified information to answer that.”
+- Centers for Disease Control and Prevention (CDC)
+- World Health Organization (WHO)
+- National Institutes of Health (NIH)
+- MedlinePlus (U.S. National Library of Medicine)
+- PubMed / PubMed Central (peer-reviewed articles)
+- Cochrane Library (systematic reviews and evidence-based medicine)
+- BMJ Best Practice
+- Cleveland Clinic
+- Johns Hopkins Medicine
+- Mount Sinai Health Library
+- Harvard Health Publishing
+- WebMD (basic/general info only, not for clinical advice)
+*NEVER* use UpToDate, Mayo Clinic, BMJ, or proprietary/unclear sources.
+Do not use unverified sources, speculation, personal opinions, or content from social media, blogs, or forums.
 
 ---
-Return your final answer using this **strict format exactly** (including line breaks and labels):
 
-*Answer:* [short answer summary]  
-*Correct Option:* [e.g., A / B / C / D]  
+When answering a question, follow this structured format:
+
+Step 1: Provide a medically accurate answer using only the sources above.  
+Step 2: Reflect on the accuracy of your own response. Ask:  
+- Did I rely on at least one of the approved sources?
+- Is the information explicitly confirmed in that source?
+- Did I avoid all speculation and generalizations?
+
+Step 3: If the answer is well-supported, assign a *confidence score*:
+- High: Confirmed by 2+ sources, no ambiguity
+- Medium: Confirmed by 1 source or minor uncertainty
+- Low: Limited detail available, answer is cautious
+
+Step 4: Clearly list which sources were referenced.
+
+Step 5: If unsure, say: “I don’t have enough verified information to answer that.”
+
+---
+
+Return your final output in this format:
+---
+*Answer:* [your verified medical answer here]  
 *Confidence Level:* [High / Medium / Low]  
-*Supporting Sources Used:* [CDC, NIH, etc.]  
-*Validation Notes:* [Why this answer is correct, what criteria were met, any ambiguity]  
-*Citation Links:*  
-- [https://source1...]  
-- [https://source2...]
+*Supporting Sources Used:* [List the names of the sources]  
+*Validation Notes:* [Brief explanation of why the answer is valid or what uncertainties exist]
+*Citation Links:* [Insert direct URLs to the source(s) used for validation, if available]
 
-If the question includes answer options, explain **why the correct one is best** and why the others are incorrect.
+*Suggested Reading:*  
+- [Article Title 1](URL) — [Short description or why it's relevant]  
+- [Article Title 2](URL) — [Optional context or summary]  
+"""
+    return base_prompt
 
-If the question has no options, just provide the best answer and explain the reasoning.
-""".strip()
-
-    return f"{base_prompt}\n\nQuestion:\n{question.strip()}\n\nAnswer:"
-
-
+# Call OpenAI with constructed prompt
 def get_medical_answer(question):
     prompt = build_prompt(question)
     response = client.chat.completions.create(
@@ -53,24 +75,24 @@ def get_medical_answer(question):
         messages=[
             {"role": "user", "content": prompt}
         ],
-        max_tokens=1000,
+        max_tokens=1200,
         temperature=0.0
     )
     return response.choices[0].message.content.strip()
 
 # Streamlit UI
 st.set_page_config(page_title="Medical QA Assistant", layout="centered")
-st.title("👩‍⚕️ Medical QA Assistant (Legal Sources Only)")
+st.title("👩‍⚕️ Medical QA Assistant (Public Medical Sources Only)")
 
 st.markdown("""
-This assistant uses **only legally permitted medical sources** like CDC, NIH, MedlinePlus, and PubMed Central.  
-It avoids any proprietary content and focuses on **explainable, source-cited responses**.
+This assistant uses **only legally safe medical sources** such as **CDC**, **NIH**, **PubMed Central**, and **MedlinePlus**.  
+It avoids proprietary clinical content and provides **detailed explanations** for all multiple-choice options.
 """)
 
-user_question = st.text_area("Enter your medical question (with or without options):", height=150)
+user_question = st.text_area("Enter your medical question (can include multiple-choice options):", height=180)
 
 if st.button("Get Answer") and user_question.strip():
-    with st.spinner("Generating medically verified response..."):
+    with st.spinner("Generating a medically verified response..."):
         try:
             answer = get_medical_answer(user_question)
             st.success("Response:")
@@ -78,4 +100,4 @@ if st.button("Get Answer") and user_question.strip():
         except Exception as e:
             st.error(f"Error: {str(e)}")
 else:
-    st.info("Please enter a medical question above and click 'Get Answer'.")
+    st.info("Please enter a question above and click 'Get Answer'.")
