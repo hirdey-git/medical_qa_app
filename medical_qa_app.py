@@ -8,7 +8,7 @@ load_dotenv()
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def build_prompt(question: str) -> str:
-    # Detect multiple-choice format (letters followed by a period or parenthesis)
+    import re
     mcq_match = re.findall(r"^[A-Da-d][\.\)]\s", question, re.MULTILINE)
     is_mcq = len(mcq_match) >= 2
 
@@ -19,42 +19,42 @@ Use only these legally safe public sources:
 - CDC, NIH, FDA, WHO (public info only)
 - MedlinePlus, PubMed Central (Open Access)
 - NICE (UK), PLOS, BMC, DOAJ
-- Johns Hopkins Medicine, Mount Sinai, Harvard Health (only public info)
-- WebMD (for general lay explanations only)
+- Johns Hopkins Medicine, Mount Sinai, Harvard Health (public info)
+- WebMD (basic/general explanations only)
 
 Do not use Mayo Clinic, UpToDate, BMJ, or any proprietary/uncertain sources.
 
 If unsure, say: “I don’t have enough verified information to answer that.”
 
-Always return in this format:
+Always return your final answer in this structured format:
 ---
-*Answer:* [medically accurate response]  
+*Answer:* [clearly state the medically correct answer]  
+*Correct Option:* [For MCQs: A / B / C / D]  
 *Confidence Level:* [High / Medium / Low]  
-*Supporting Sources Used:* [List]  
-*Validation Notes:* [Explain reasoning and any uncertainty]  
-*Citation Links:* [List direct source URLs]
+*Supporting Sources Used:* [CDC, NIH, etc.]  
+*Validation Notes:* [Explain why answer is valid / uncertain]  
+*Citation Links:* [URLs to sources used]
 """
 
     if is_mcq:
         base_prompt += """
 ---
-If the question includes answer options, do the following:
-1. Identify and clearly state the correct answer.
-2. Explain **why** it is correct.
-3. For each incorrect answer, explain **why it is wrong** using clinical reasoning.
-4. Cite only approved public-domain medical sources.
+If the question includes multiple-choice options (A–D), follow this format:
+1. **State the correct answer clearly** with the letter (e.g., "Correct Option: B").
+2. Explain why this answer is correct.
+3. Go through **each of the incorrect options**, and explain why they are incorrect.
+4. Support everything with references from the approved sources.
 """
     else:
         base_prompt += """
 ---
-If the question has no answer options:
-1. Provide a medically verified, clear answer.
-2. Explain your reasoning.
-3. Cite the sources used and assign a confidence level.
+If the question has no options:
+1. Give the medically appropriate answer.
+2. Explain why.
+3. Include confidence level, source validation, and citations.
 """
 
-    full_prompt = f"{base_prompt.strip()}\n\nQuestion: {question.strip()}\n\nAnswer:"
-    return full_prompt
+    return f"{base_prompt.strip()}\n\nQuestion: {question.strip()}\n\nAnswer:"
 
 def get_medical_answer(question):
     prompt = build_prompt(question)
