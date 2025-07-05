@@ -64,7 +64,7 @@ def get_medical_answer(question):
         messages=[
             {"role": "user", "content": prompt}
         ],
-        max_tokens=5000,
+        max_tokens=800,
         temperature=0
     )
     return response.choices[0].message.content.strip()
