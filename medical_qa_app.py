@@ -26,35 +26,25 @@ Do not use Mayo Clinic, UpToDate, BMJ, or any proprietary/uncertain sources.
 
 If unsure, say: “I don’t have enough verified information to answer that.”
 
-Always return your final answer in this structured format:
 ---
-*Answer:* [clearly state the medically correct answer]  
-*Correct Option:* [For MCQs: A / B / C / D]  
+Return your final answer using this **strict format exactly** (including line breaks and labels):
+
+*Answer:* [short answer summary]  
+*Correct Option:* [e.g., A / B / C / D]  
 *Confidence Level:* [High / Medium / Low]  
 *Supporting Sources Used:* [CDC, NIH, etc.]  
-*Validation Notes:* [Explain why answer is valid / uncertain]  
-*Citation Links:* [URLs to sources used]
-"""
+*Validation Notes:* [Why this answer is correct, what criteria were met, any ambiguity]  
+*Citation Links:*  
+- [https://source1...]  
+- [https://source2...]
 
-    if is_mcq:
-        base_prompt += """
----
-If the question includes multiple-choice options (A–D), follow this format:
-1. **State the correct answer clearly** with the letter (e.g., "Correct Option: B").
-2. Explain why this answer is correct.
-3. Go through **each of the incorrect options**, and explain why they are incorrect.
-4. Support everything with references from the approved sources.
-"""
-    else:
-        base_prompt += """
----
-If the question has no options:
-1. Give the medically appropriate answer.
-2. Explain why.
-3. Include confidence level, source validation, and citations.
-"""
+If the question includes answer options, explain **why the correct one is best** and why the others are incorrect.
 
-    return f"{base_prompt.strip()}\n\nQuestion: {question.strip()}\n\nAnswer:"
+If the question has no options, just provide the best answer and explain the reasoning.
+""".strip()
+
+    return f"{base_prompt}\n\nQuestion:\n{question.strip()}\n\nAnswer:"
+
 
 def get_medical_answer(question):
     prompt = build_prompt(question)
