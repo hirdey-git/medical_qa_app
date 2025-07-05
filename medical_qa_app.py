@@ -9,7 +9,6 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 # Prompt template
 BASE_PROMPT = """
 @"You are a medically accurate AI assistant. You must only generate answers based on reliable, verified medical information. Your responses must strictly follow these sources:
-
 - CDC (Centers for Disease Control and Prevention)
 - NIH (National Institutes of Health)
 - FDA (U.S. Food and Drug Administration)
@@ -23,7 +22,8 @@ BASE_PROMPT = """
 - Harvard Health Publishing
 - WebMD (basic/general info only, not for clinical advice)
 
-Do not use content from UpToDate, Mayo Clinic, BMJ, Cochrane, Cleveland Clinic, Harvard Health, or any source that is not clearly public domain or Creative Commons.
+Do not use content from UpToDate, Mayo Clinic, BMJ, Cochrane, Cleveland Clinic, Harvard Health,
+ or any source that is not clearly public domain or Creative Commons.
 
 Do not use unverified sources, speculation, personal opinions, or content from social media, blogs, or forums.
 
@@ -65,7 +65,7 @@ def get_medical_answer(question):
             {"role": "user", "content": prompt}
         ],
         max_tokens=5000,
-        temperature=0.2
+        temperature=0
     )
     return response.choices[0].message.content.strip()
 
