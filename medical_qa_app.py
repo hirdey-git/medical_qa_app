@@ -61,9 +61,6 @@ Return your final output in this format:
 *Validation Notes:* [Brief explanation of why the answer is valid or what uncertainties exist]
 *Citation Links:* [Insert direct URLs to the source(s) used for validation, if available]
 
-*Suggested Reading:*  
-- [Article Title 1](URL) — [Short description or why it's relevant]  
-- [Article Title 2](URL) — [Optional context or summary]  
 """
     return base_prompt
 
